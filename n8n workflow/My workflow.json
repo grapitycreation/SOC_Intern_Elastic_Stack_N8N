@@ -1,0 +1,308 @@
+{
+  "name": "My workflow",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "minutes",
+              "minutesInterval": 1
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        -144,
+        0
+      ],
+      "id": "028fd073-5a8f-450f-bf33-a82123dcec79",
+      "name": "Schedule Trigger (1 min)"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "4506a06f-9b28-49b0-9c67-9fbfc54e5cec",
+              "name": "query_date",
+              "value": "={{ $meta?.lastSuccessfulRunDate || '2020-01-01T00:00:00.000Z' }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        64,
+        0
+      ],
+      "id": "f6af2899-9a0e-48ef-96b1-64cfebeb6e21",
+      "name": "Set Query Timestamp"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://192.168.5.133:9200/n8n-alert-queue/_search",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "elasticsearchApi",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"size\": 50,\n  \"query\": {\n    \"range\": {\n      \"timestamp\": {\n        \"gt\": \"{{ $json.query_date }}\"\n      }\n    }\n  }\n}",
+        "options": {
+          "allowUnauthorizedCerts": true
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        256,
+        0
+      ],
+      "id": "03c8d363-6f19-4633-b2b0-acf9e77b4e52",
+      "name": "Query Alert Queue",
+      "credentials": {
+        "elasticsearchApi": {
+          "id": "pxBWP3zApybBNMbR",
+          "name": "Elasticsearch account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "fieldToSplitOut": "hits.hits",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.splitOut",
+      "typeVersion": 1,
+      "position": [
+        432,
+        0
+      ],
+      "id": "3c9c61b0-0553-4ba9-9540-2895191dc47f",
+      "name": "Split into Items"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://192.168.5.133:9200/.internal.alerts-security.alerts-default-*/_search",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "elasticsearchApi",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"size\": 1,\n  \"query\": {\n    \"term\": {\n      \"_id\": \"{{ $json[\"_source\"][\"test_alert_id\"] }}\"\n    }\n  }\n}",
+        "options": {
+          "allowUnauthorizedCerts": true
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        624,
+        0
+      ],
+      "id": "d67fc9be-738b-48dd-a0f3-fcc288853b6a",
+      "name": "Fetch Full Alert Details",
+      "credentials": {
+        "elasticsearchApi": {
+          "id": "pxBWP3zApybBNMbR",
+          "name": "Elasticsearch account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "be075fed-cac9-4867-9156-2ca75a6fca8a",
+              "name": "rule_name",
+              "value": "={{ $json.hits.hits[0]._source['kibana.alert.rule.name'] }}",
+              "type": "string"
+            },
+            {
+              "id": "faf53216-cfdb-48dc-b1dd-548789e94a5e",
+              "name": "source_ip",
+              "value": "={{ $json.hits.hits[0]._source.source }}",
+              "type": "object"
+            },
+            {
+              "id": "54c30080-e235-400f-88aa-5af437c13611",
+              "name": "url_query",
+              "value": "={{ $json.hits.hits[0]._source.url }}",
+              "type": "object"
+            },
+            {
+              "id": "4c6e164b-257c-49dc-9f42-60f92cfe5f93",
+              "name": "host_name",
+              "value": "={{ $json.hits.hits[0]._source.host }}",
+              "type": "object"
+            },
+            {
+              "id": "88683b29-9014-4910-bd27-d236abd550a0",
+              "name": "time",
+              "value": "={{ $json.hits.hits[0]._source.event }}",
+              "type": "object"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        832,
+        0
+      ],
+      "id": "f4bc22e2-9f1c-4613-b087-7a59dad5c025",
+      "name": "Extract & Format Fields"
+    },
+    {
+      "parameters": {
+        "chatId": "5574930630",
+        "text": "=<b>🚨 Cảnh báo SOAR Mới! 🚨</b>  <b>Rule:</b> <code>{{ $json.rule_name }}</code> <b>Source IP:</b> <code>{{ $json.source_ip.ip }}</code> <b>Host:</b> <code>{{ $json.host_name.hostname }}</code> <b>Payload:</b> <code>{{ $json.url_query.query }}</code>\n<b>Time:</b> <code>{{ $json.time.created }}</code>",
+        "additionalFields": {
+          "parse_mode": "HTML"
+        }
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        1024,
+        -112
+      ],
+      "id": "ad6662c5-7e1a-4725-9e52-4d135182fe3d",
+      "name": "Send Telegram Alert",
+      "webhookId": "0f8660c2-fd1c-44e1-97cc-992f63f0c01b",
+      "credentials": {
+        "telegramApi": {
+          "id": "1Ljk8bQYS9ZAIe4M",
+          "name": "Telegram account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "fromEmail": "tranhuuhieuthh004@gmail.com",
+        "toEmail": "22520444@gm.uit.edu.vn",
+        "subject": "=🚨 [SOC Alert] Phát hiện tấn công: {{ $json.rule_name }}",
+        "html": "=<div style=\"font-family: Arial, sans-serif; color: #333;\">\n    <h2 style=\"color: #d9534f;\">🚨 Cảnh báo Bảo mật SOC</h2>\n    <p>Hệ thống SIEM đã phát hiện một hoạt động đáng ngờ. Dưới đây là chi tiết:</p>\n    \n    <table style=\"width: 100%; border-collapse: collapse; margin-top: 10px;\">\n        <tr style=\"background-color: #f2f2f2;\">\n            <td style=\"padding: 10px; border: 1px solid #ddd; font-weight: bold;\">Tên Rule:</td>\n            <td style=\"padding: 10px; border: 1px solid #ddd;\">{{ $json.rule_name }}</td>\n        </tr>\n        <tr>\n            <td style=\"padding: 10px; border: 1px solid #ddd; font-weight: bold;\">Thời gian:</td>\n            <td style=\"padding: 10px; border: 1px solid #ddd;\">{{ $json.time.created }}</td>\n        </tr>\n        <tr style=\"background-color: #f2f2f2;\">\n            <td style=\"padding: 10px; border: 1px solid #ddd; font-weight: bold;\">Source IP:</td>\n            <td style=\"padding: 10px; border: 1px solid #ddd; color: #d9534f; font-weight: bold;\">{{ $json.source_ip ? $json.source_ip.ip : 'N/A' }}</td>\n        </tr>\n        <tr>\n            <td style=\"padding: 10px; border: 1px solid #ddd; font-weight: bold;\">Máy chủ đích:</td>\n            <td style=\"padding: 10px; border: 1px solid #ddd;\">{{ $json.host_name ? $json.host_name.hostname : 'N/A' }}</td>\n        </tr>\n        <tr style=\"background-color: #f2f2f2;\">\n            <td style=\"padding: 10px; border: 1px solid #ddd; font-weight: bold;\">Payload:</td>\n            <td style=\"padding: 10px; border: 1px solid #ddd; font-family: monospace;\">{{ $json.url_query ? $json.url_query.query : 'N/A' }}</td>\n        </tr>\n    </table>\n\n    <p style=\"margin-top: 20px;\">\n        Vui lòng kiểm tra Kibana để biết thêm chi tiết.<br>\n        <em>Sent automatically via n8n SOAR Workflow.</em>\n    </p>\n</div>",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2.1,
+      "position": [
+        1024,
+        112
+      ],
+      "id": "b6a02881-afea-45ef-b6b2-c145784513e2",
+      "name": "Send Email Alert",
+      "webhookId": "b7cef782-8847-4216-a667-b307d6911b75",
+      "credentials": {
+        "smtp": {
+          "id": "f56SKG0fnr4k3aBF",
+          "name": "SMTP account"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Schedule Trigger (1 min)": {
+      "main": [
+        [
+          {
+            "node": "Set Query Timestamp",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Set Query Timestamp": {
+      "main": [
+        [
+          {
+            "node": "Query Alert Queue",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Query Alert Queue": {
+      "main": [
+        [
+          {
+            "node": "Split into Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Split into Items": {
+      "main": [
+        [
+          {
+            "node": "Fetch Full Alert Details",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch Full Alert Details": {
+      "main": [
+        [
+          {
+            "node": "Extract & Format Fields",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract & Format Fields": {
+      "main": [
+        [
+          {
+            "node": "Send Telegram Alert",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Send Email Alert",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send Telegram Alert": {
+      "main": [
+        []
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "timezone": "Asia/Ho_Chi_Minh",
+    "callerPolicy": "workflowsFromSameOwner",
+    "availableInMCP": false,
+    "errorWorkflow": "gDhOkhnBQosjSRsw",
+    "timeSavedPerExecution": 1
+  },
+  "versionId": "a250c49a-d974-4f28-bf70-bea0c5ff8842",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "27b22d0b507551b196f953b31a45cf25f136e305ae26acdcd9f4b4e1c4656a2d"
+  },
+  "id": "gDhOkhnBQosjSRsw",
+  "tags": []
+}

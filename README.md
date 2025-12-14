@@ -1,10 +1,8 @@
-# SOC_Project_Elastic_Stack_N8N
-
-# 🛡️ Automated SOC Incident Response Workflow (SOAR)
-
+# 🛡️ SOC_Project_Elastic_Stack_N8N: Automated SOC Incident Response Workflow (SOAR)
 ![n8n](https://img.shields.io/badge/n8n-Workflow-orange?style=for-the-badge&logo=n8n)
 ![Elastic](https://img.shields.io/badge/Elastic-SIEM-blue?style=for-the-badge&logo=elastic)
 ![Security](https://img.shields.io/badge/Security-Operations-red?style=for-the-badge)
+
 
 ## 📖 Tổng quan (Overview)
 
@@ -12,7 +10,12 @@ Dự án này là một quy trình **SOAR (Security Orchestration, Automation, a
 
 Workflow giúp giảm thiểu thời gian phản hồi sự cố (MTTR) và loại bỏ các tác vụ thủ công lặp lại của SOC Analyst Tier 1.
 
-## 🏗️ Kiến trúc luồng dữ liệu (Data Flow)
+## Kiến trúc Lab
+![diagram](https://github.com/grapitycreation/SOC_Project_Elastic_Stack_N8N/blob/main/Architecture.png)
+
+
+
+## 🏗️ Kiến trúc luồng dữ liệu của Workflow N8N (Data Flow)
 
 Dưới đây là sơ đồ logic của workflow, mô tả cách dữ liệu di chuyển từ Elastic Alert Queue đến người dùng cuối:
 
@@ -33,4 +36,7 @@ Dưới đây là sơ đồ logic của workflow, mô tả cách dữ liệu di 
 - **Communication**: Telegram Bot API, SMTP Email
 
 ## 📸 Demo Kết quả
+![result](https://github.com/grapitycreation/SOC_Project_Elastic_Stack_N8N/blob/main/images/1.jpg)
+![result](https://github.com/grapitycreation/SOC_Project_Elastic_Stack_N8N/blob/main/images/2.jpg)
+![result](https://github.com/grapitycreation/SOC_Project_Elastic_Stack_N8N/blob/main/images/3.jpg)
 
